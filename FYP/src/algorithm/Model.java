@@ -54,6 +54,14 @@ public class Model {
                         graph.get(edgeEnt.getKey()), edgeEnt.getValue().cost, edgeEnt.getValue().flowRate));
             }
         }
+        //Remove elevator edges
+        for (Elevator elevator : elevators.values()){
+            for (Edge edge : elevator.edges) {
+                //System.out.println("removing edge: " + edge.start.id);
+                graph.get(edge.start.id).edges.remove(edge.end.id);
+            }
+        }
+        
         return graph;
     }
     

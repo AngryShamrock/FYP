@@ -32,7 +32,6 @@ public class SimplePlanner{
     
     
     public void execute() throws IOException {
-        int targetLookahead = 100;
         Model model = new Model( "testGraph.txt" );
         goals.add("E");
         goals.add("F");
@@ -47,66 +46,47 @@ public class SimplePlanner{
         model.getGraphAtTime(t).get("A").arrivals=1;
         //Put people at node A and D
         model.getGraphAtTime(t).get("D").arrivals=1;
+        /*
         while (t < targetLookahead){
             //While node has no direction
                 //Set directions at each node in path
                 //Set predicted occupancy of each node in path
-             for (Node node : model.getGraphAtTime(t).values()) {
-                 if (!isGoal(node.id)){
-                     while (node.arrivals>0) {
-                         int groupSize = node.arrivals;
-                         List<Vertex> path = findLeastCostPathToGoal(  model, t, node.id);
-                         System.out.println("FINDING DIR FOR:" + node.id);
-                         for (Vertex vert : path){
-                             if (vert.prev != null){
-                                 Node tmp = model.getGraphAtTime(t+vert.prev.distance).get(vert.prev.name);
-                                 Edge outgoingEdge = tmp.edges.get(vert.name);
-                                 outgoingEdge.active=true;
-                                 if (groupSize > outgoingEdge.flowRate){
-                                     groupSize = outgoingEdge.flowRate;
-                                 }
-                                 outgoingEdge.predictedOccupancy += groupSize;
-                                 if (outgoingEdge.predictedOccupancy >= outgoingEdge.flowRate){
-                                     tmp.edges.remove(outgoingEdge.end.id);
-                                 }
-                                 tmp.arrivals -= groupSize;
-                             }
-                         }
-                     }
-                     
-                 } else {
-                     node.edges.get(node.id).active= true;
-                 }
-                 /*
-                 if (node.direction != null){
-                     node.processArrivals();
-                     for (Edge edge : node.edges.values()){
-                         Node end = model.getGraphAtTime(t+edge.cost).get(edge.end.id);
-                         end.arrivals += edge.predictedOccupancy;
-                         if (end.arrivals>0){
-                             System.out.println(end.arrivals + " people scheduled for " + t + "->" + (t+edge.cost) + " to " + end.id);
-                         } 
-                     }
-                 }
-                 */
-                 //node.direction.occupancy += (flowRate/arrivals)
-                 //node.self.occupancy += (arrivals-flowRate)
-             }
+             planPathsArbitary( model, t);
              t++;
         }
-         //####TESTING DJISTRKAS
-        /*
-        //model.getGraphAtTime(t + 19).get("C").edges.remove("G");
-        //model.getGraphAtTime(t + 20).get("C").edges.remove("G");
-        //model.getGraphAtTime(t + 21).get("C").edges.remove("G");
-        //model.getGraphAtTime(t + 22).get("C").edges.remove("G");
-        
-        List<Vertex> path = findLeastCostPathToGoal( model, t, "B");
-        for (Vertex vert : path){
-            System.out.println(vert.name + ", distance: + " + vert.distance);
-        }
         */
-        printGraph( model.getGraphAtTime(1));
+        planPathsArbitary(model, t);
+        printGraph( model.getGraphAtTime(5));
+    }
+    
+    public void planPathsArbitary( Model model, int t) {
+        for (Node node : model.getGraphAtTime(t).values()) { /** SHOULD USE HUERISTIC FOR SELECTING NODE **/
+            if (!isGoal(node.id)){
+                while (node.arrivals>0) {
+                    int groupSize = node.arrivals;
+                    List<Vertex> path = findLeastCostPathToGoal(  model, t, node.id);
+                    System.out.println("FINDING DIR FOR:" + node.id);
+                    for (Vertex vert : path){
+                        if (vert.prev != null){
+                            Node tmp = model.getGraphAtTime(t+vert.prev.distance).get(vert.prev.name);
+                            Edge outgoingEdge = tmp.edges.get(vert.name);
+                            outgoingEdge.active=true;
+                            if (groupSize > outgoingEdge.flowRate){
+                                groupSize = outgoingEdge.flowRate;
+                            }
+                            outgoingEdge.predictedOccupancy += groupSize;
+                            if (outgoingEdge.predictedOccupancy >= outgoingEdge.flowRate){
+                                tmp.edges.remove(outgoingEdge.end.id);
+                            }
+                            tmp.arrivals -= groupSize;
+                        }
+                    }
+                }
+                
+            } else {
+                node.edges.get(node.id).active= true;
+            }
+        }
     }
 
     
@@ -115,7 +95,6 @@ public class SimplePlanner{
         Map<String, Map<Integer, Vertex>> verts = new HashMap<String, Map<Integer, Vertex>>();
         int offset = 0;
         PriorityQueue<Vertex> queue = new PriorityQueue<Vertex>();
-        
         
         for (String key : model.getGraphAtTime(t).keySet()) {
             verts.put(key, new HashMap<Integer, Vertex>()); 
@@ -144,26 +123,6 @@ public class SimplePlanner{
                         //System.out.println("Adding: " + edge.end.id + " at " + (u.distance + edge.cost));
                     }
                 }
-                    /*
-                    if (! verts.get(edge.end.id).containsKey(u.distance + edge.cost)) {
-                        //Have not met vert yet, add it to the map
-                    } else {
-                        //Have met vert before, check if this path is shorter
-                        
-                        Vertex v = verts.get(edge.end.id).get(key);
-                        
-                        if (!v.visited){
-                            int altDist = u.distance + edge.cost; //+ danger
-                            if ( altDist < v.distance){
-                                v.distance = altDist;
-                                v.prev = u;
-                            }
-                            queue.add(v);
-                           // System.out.println("Edge: " + v.name + ", " + v.distance + ", " + v.prev)
-                        }
-                     }
-                 }
-                 */
             }    
         }
         Vertex current = goal;
