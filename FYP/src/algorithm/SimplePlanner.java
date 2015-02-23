@@ -37,6 +37,10 @@ public class SimplePlanner{
         goals.add("E");
         goals.add("F");
         
+        /**
+         * MODIFICATION
+         */
+        
         int t = 0;
         
         t++;
