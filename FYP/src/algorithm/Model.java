@@ -31,6 +31,12 @@ public class Model {
        plan = new ArrayList<Map<String, Node>>();
     }
     
+    public Model ( Map<String, Node> baseGraph, Map<String, Elevator> elevators ){
+    	this.elevators = elevators;
+        this.baseGraph = baseGraph;
+       plan = new ArrayList<Map<String, Node>>();
+    }
+    
     public Map<String, Node> genGraph(){
         
         Map<String, Node> graph = new HashMap<String, Node>();
@@ -93,6 +99,8 @@ public class Model {
     //Edges[Time] edges
     
     //GetDangeratTimeT
+    
+    //TODO EXPORT
     
     private Map<String, Node> loadScenarioFile( String path ) throws IOException{
         Map<String, Node> scenario = new HashMap<String, Node>();

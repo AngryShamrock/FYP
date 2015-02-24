@@ -58,7 +58,7 @@ public class SimplePlanner{
         planPathsArbitary(model, t);
         printGraph( model.getGraphAtTime(5));
     }
-    
+    //TODO create additional MODEL to store decisions
     public void planPathsArbitary( Model model, int t) {
         for (Node node : model.getGraphAtTime(t).values()) { /** SHOULD USE HUERISTIC FOR SELECTING NODE **/
             if (!isGoal(node.id)){
