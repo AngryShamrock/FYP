@@ -43,9 +43,9 @@ public class SimplePlanner{
         int t = 0;
         
         t++;
-        model.getGraphAtTime(t).get("A").arrivals=1;
+        model.getGraphAtTime(t).get("A").arrivals=30;
         //Put people at node A and D
-        model.getGraphAtTime(t).get("D").arrivals=1;
+        model.getGraphAtTime(t).get("D").arrivals=30;
         /*
         while (t < targetLookahead){
             //While node has no direction
@@ -56,7 +56,7 @@ public class SimplePlanner{
         }
         */
         planPathsArbitary(model, t);
-        printGraph( model.getGraphAtTime(5));
+        printGraph( model.getGraphAtTime(2));
     }
     //TODO create additional MODEL to store decisions
     public void planPathsArbitary( Model model, int t) {
@@ -76,7 +76,7 @@ public class SimplePlanner{
                             }
                             outgoingEdge.predictedOccupancy += groupSize;
                             if (outgoingEdge.predictedOccupancy >= outgoingEdge.flowRate){
-                                tmp.edges.remove(outgoingEdge.end.id);
+                                outgoingEdge.full = true;
                             }
                             tmp.arrivals -= groupSize;
                         }
@@ -110,18 +110,21 @@ public class SimplePlanner{
                 break;
             } else {
                 for (Edge edge : model.getGraphAtTime(t + u.distance).get(u.name).edges.values()){
-                    u.visited= true;
-                    //System.out.println("Adding: " + edge.end.id + " at " + (u.distance + edge.cost));
-                    Integer length = u.distance + edge.cost;
-                    if (!verts.get(edge.end.id).containsKey(length)) {
-                        //Have not met vert yet, add it to the map
-                        Vertex newVert = new Vertex(edge.end.id, length, u );
-                        
-                        verts.get(edge.end.id).put(length, newVert);
-                        queue.add( newVert );
-                        
+                	if (!edge.full){
+                		u.visited= true;
                         //System.out.println("Adding: " + edge.end.id + " at " + (u.distance + edge.cost));
-                    }
+                        Integer length = u.distance + edge.cost;
+                        if (!verts.get(edge.end.id).containsKey(length)) {
+                            //Have not met vert yet, add it to the map
+                            Vertex newVert = new Vertex(edge.end.id, length, u );
+                            
+                            verts.get(edge.end.id).put(length, newVert);
+                            queue.add( newVert );
+                            
+                            //System.out.println("Adding: " + edge.end.id + " at " + (u.distance + edge.cost));
+                        }
+                	}
+                    
                 }
             }    
         }

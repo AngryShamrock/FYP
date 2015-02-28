@@ -10,6 +10,7 @@ public class Edge {
     public int cost;
     public int predictedOccupancy;
     public boolean active;
+    public boolean full = false;
     public int flowRate;
     
     public Edge(Node start, Node end, int cost, int flowRate){
