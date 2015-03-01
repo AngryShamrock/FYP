@@ -163,4 +163,12 @@ public class Model {
         }
         return scenario;
     }
+    
+    //EXPORT
+    public void export(String fileName){
+    	//For each node
+    			//Look at Edges
+    			//If edge has occupants/signal
+    				//create element for edge
+    }
 }
