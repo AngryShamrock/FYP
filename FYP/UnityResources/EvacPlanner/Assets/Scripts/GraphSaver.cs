@@ -1,7 +1,11 @@
 ﻿using UnityEngine;
 using System.Collections;
 using System.IO;
-using Newtonsoft.Json.Linq;
+using JsonFx.Json;
+using JsonFx.Model;
+using JsonFx;
+using System.Collections.Generic;
+//using Newtonsoft.Json.Linq;
 
 public class GraphSaver : MonoBehaviour {
 	public string path;
@@ -18,6 +22,8 @@ public class GraphSaver : MonoBehaviour {
 	}
 
 	public void SaveGraph() {
+
+		/*
 		JObject json = new JObject ();
 		JArray nodes = new JArray ();
 		GameObject[] Nodes = GameObject.FindGameObjectsWithTag ("Node");
@@ -76,13 +82,29 @@ public class GraphSaver : MonoBehaviour {
 
 		StreamWriter fileOut = File.CreateText (path);
 
-		fileOut.WriteLine (json.ToString);
+		fileOut.WriteLine (json.ToString());
 		fileOut.Close ();
+*/
+
 	}
 
-	public void loadGraph() {
+	public void loadGraph( string path ) {
+
 		//Destroy all nodes
+		GameObject[] Nodes = GameObject.FindGameObjectsWithTag ("Node");
+		foreach (GameObject node in Nodes) {
+			Destroy (node);
+		}
+
 		//read file
+		string line;
+		using (StreamReader sr = new StreamReader(path)) {
+				line = sr.ReadToEnd();
+		}
+		JsonReader reader = new JsonReader ();
+
+		var output = reader.Read<Dictionary<string, object>>(line);
+		Dictionary<string, object>[] jnode = (Dictionary<string, object>[]) output ["nodes"];
 		//create nodes
 		//Create edges
 		//

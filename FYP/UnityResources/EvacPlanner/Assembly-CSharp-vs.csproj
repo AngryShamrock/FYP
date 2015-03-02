@@ -46,16 +46,23 @@
 	</Reference>
   </ItemGroup>
   <ItemGroup>
+     <Compile Include="Assets\JSONObject.cs" />
+     <Compile Include="Assets\JSONTemplates.cs" />
      <Compile Include="Assets\Scripts\EdgeScript.cs" />
      <Compile Include="Assets\Scripts\ElevatorScript.cs" />
      <Compile Include="Assets\Scripts\GraphSaver.cs" />
      <Compile Include="Assets\Scripts\NodeScript.cs" />
+     <Compile Include="Assets\VectorTemplates.cs" />
+     <None Include="Assets\lib\JsonFx.xml" />
      <None Include="Assets\lib\Newtonsoft.Json.xml" />
  <Reference Include="UnityEngine.UI">
  <HintPath>D:/Program Files (x86)/Unity/Editor/Data/UnityExtensions/Unity/GUISystem/4.6.0/UnityEngine.UI.dll</HintPath>
  </Reference>
  <Reference Include="Newtonsoft.Json">
- <HintPath>D:/Eanna/git/UnityResources/EvacPlanner/Assets/lib/Newtonsoft.Json.dll</HintPath>
+ <HintPath>D:/Eanna/git/FYP/FYP/UnityResources/EvacPlanner/Assets/lib/Newtonsoft.Json.dll</HintPath>
+ </Reference>
+ <Reference Include="JsonFx">
+ <HintPath>D:/Eanna/git/FYP/FYP/UnityResources/EvacPlanner/Assets/lib/JsonFx.dll</HintPath>
  </Reference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

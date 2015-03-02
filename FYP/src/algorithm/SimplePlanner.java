@@ -35,7 +35,6 @@ public class SimplePlanner{
         Model model = new Model( "testGraph.txt" );
         goals.add("E");
         goals.add("F");
-        
         /**
          * MODIFICATION
          */
