@@ -5,7 +5,8 @@ public class Vertex implements Comparable<Vertex> {
     public Integer distance;
     public Vertex prev;
     public Boolean visited;
-    public Vertex( String name, Integer distance, Vertex prev) {
+    public double danger;
+    public Vertex( String name, Integer distance, double danger, Vertex prev) {
         this.name = name;
         this.distance = distance;
         this.prev = prev;
@@ -13,10 +14,11 @@ public class Vertex implements Comparable<Vertex> {
     }
     @Override
     public int compareTo(Vertex other) {
-        return distance.compareTo(other.distance);
+    	Double val = distance+danger;
+        return val.compareTo(other.danger+other.distance);
     }
     
     public Vertex copy() {
-        return new Vertex( name, distance, prev);
+        return new Vertex( name, distance, danger, prev);
     }
 }

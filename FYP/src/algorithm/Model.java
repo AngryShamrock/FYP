@@ -4,6 +4,7 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -11,6 +12,10 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+
+import org.json.simple.JSONArray;
+import org.json.simple.JSONObject;
+import org.json.simple.JSONValue;
 
 
 public class Model {
@@ -25,7 +30,11 @@ public class Model {
     public Map<String, Elevator> elevators;
     
     
+    public List<Map<String, Map<String, Integer>>> dangerModel;
+    
+    
     public Model( String path ) throws IOException{ 
+    	dangerModel = new ArrayList<Map<String,Map<String, Integer>>>();
         elevators = new HashMap<String, Elevator>();
         baseGraph = loadScenarioFile( path );
        plan = new ArrayList<Map<String, Node>>();
@@ -165,10 +174,42 @@ public class Model {
     }
     
     //EXPORT
-    public void export(String fileName){
+    @SuppressWarnings("unchecked")
+	public void export(String fileName){
     	//For each node
     			//Look at Edges
     			//If edge has occupants/signal
     				//create element for edge
+    	JSONArray jsonPlan = new JSONArray();
+    	for (Map<String, Node> graph : plan){
+    		JSONArray step = new JSONArray();
+    		for ( Node node : graph.values()){
+    			
+    			for ( Edge edge : node.edges.values() ) {
+    				
+    				if (edge.active) {
+    					JSONObject jsonEdge = new JSONObject();
+        				jsonEdge.put("start",  edge.start.id);
+    					jsonEdge.put("end", edge.end.id);
+    					jsonEdge.put("signal", ((edge.active) ? 1 : 0));
+    					jsonEdge.put("inFlow", edge.inFlow);
+    					jsonEdge.put("predictedOccupancy", edge.predictedOccupancy);
+    					step.add(jsonEdge);
+    				}
+    			}
+    		}
+    		jsonPlan.add( step );
+    	}
+    	try {
+			FileWriter writer = new FileWriter(new File(fileName));
+			writer.write(jsonPlan.toString());
+			writer.close();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+    	
+    	System.out.println(jsonPlan);
+    	
     }
 }

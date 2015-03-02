@@ -56,7 +56,9 @@ public class SimplePlanner{
         }
         */
         planPathsArbitary(model, t);
-        printGraph( model.getGraphAtTime(2));
+        
+        printGraph( model.getGraphAtTime(20));
+        model.export("escapeRouter.pln");
     }
     //TODO create additional MODEL to store decisions
     public void planPathsArbitary( Model model, int t) {
@@ -74,8 +76,13 @@ public class SimplePlanner{
                             if (groupSize > outgoingEdge.flowRate){
                                 groupSize = outgoingEdge.flowRate;
                             }
-                            outgoingEdge.predictedOccupancy += groupSize;
-                            if (outgoingEdge.predictedOccupancy >= outgoingEdge.flowRate){
+                            outgoingEdge.inFlow += groupSize;
+                            for ( int i = 0; i < outgoingEdge.cost; i++){
+                            	model.getGraphAtTime(t+vert.prev.distance+i).
+                            	get(outgoingEdge.start.id).edges.get(outgoingEdge.end.id).
+                            	predictedOccupancy += groupSize;
+                            }
+                            if (outgoingEdge.inFlow >= outgoingEdge.flowRate){
                                 outgoingEdge.full = true;
                             }
                             tmp.arrivals -= groupSize;
@@ -100,7 +107,7 @@ public class SimplePlanner{
             verts.put(key, new HashMap<Integer, Vertex>()); 
         }
         
-        queue.add( new Vertex(source, 0, null));
+        queue.add( new Vertex(source, 0, 0, null));
         // main loop
         Vertex goal = null;
         while (!queue.isEmpty()){
@@ -116,7 +123,7 @@ public class SimplePlanner{
                         Integer length = u.distance + edge.cost;
                         if (!verts.get(edge.end.id).containsKey(length)) {
                             //Have not met vert yet, add it to the map
-                            Vertex newVert = new Vertex(edge.end.id, length, u );
+                            Vertex newVert = new Vertex(edge.end.id, length, u.danger+edge.danger, u );
                             
                             verts.get(edge.end.id).put(length, newVert);
                             queue.add( newVert );
