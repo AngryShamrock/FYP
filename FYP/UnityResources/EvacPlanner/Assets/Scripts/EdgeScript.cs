@@ -6,9 +6,11 @@ public class EdgeScript : MonoBehaviour {
 	public GameObject end;
 	public int cost;
 	public int flowRate;
+	public bool active;
+	LineRenderer line;
 	// Use this for initialization
 	void Start () {
-		LineRenderer line = GetComponent<LineRenderer> ();
+		 line = GetComponent<LineRenderer> ();
 		line.SetVertexCount (2);
 
 		line.SetPosition (0, start.transform.position);
@@ -17,6 +19,7 @@ public class EdgeScript : MonoBehaviour {
 	
 	// Update is called once per frame
 	void Update () {
-	
+		line.SetPosition (0, start.transform.position-Vector3.forward*0.01f);
+		line.SetPosition (1, end.transform.position+Vector3.forward*0.01f);
 	}
 }

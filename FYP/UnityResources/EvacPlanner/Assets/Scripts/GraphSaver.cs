@@ -9,6 +9,10 @@ using System.Collections.Generic;
 
 public class GraphSaver : MonoBehaviour {
 	public string path;
+	public string dir;
+	public GameObject nodeTemp;
+	public GameObject edgeTemp;
+	private bool loadNext;
 	// Use this for initialization
 	void Start () {
 	
@@ -16,97 +20,148 @@ public class GraphSaver : MonoBehaviour {
 	
 	// Update is called once per frame
 	void Update () {
+		if (loadNext) {
+						loadGraph ();
+						loadNext = false;
+		}
 		if (Input.GetKeyDown (KeyCode.S)) {
 			SaveGraph ();		
+		}
+
+		if (Input.GetKeyDown( KeyCode.L)) {
+			GameObject[] Nodes = GameObject.FindGameObjectsWithTag ("Node");
+			foreach (GameObject node in Nodes) {
+				Destroy (node);
+			}
+			loadNext= true;
+
+
 		}
 	}
 
 	public void SaveGraph() {
 
-		/*
-		JObject json = new JObject ();
-		JArray nodes = new JArray ();
+		JSONObject json = JSONObject.obj;
+
+		JSONObject nodes = JSONObject.arr;
 		GameObject[] Nodes = GameObject.FindGameObjectsWithTag ("Node");
+		print (Nodes.Length);
 		foreach( GameObject node in Nodes ){
 			NodeScript scptNode = node.GetComponent<NodeScript>();
-			JObject jNode = new JObject();
-			jNode.Add ("id", scptNode.Id);
-			JObject position = new JObject();
-			position.Add ("x", node.transform.position.x);
-			position.Add ("y", node.transform.position.y);
-			position.Add ("z", node.transform.position.z);
-			jNode.Add ("position", position);
-			jNode.Add ("arrivals", scptNode.occupants);
+			JSONObject jNode = JSONObject.obj;
+			jNode.AddField ("id", scptNode.Id);
+			JSONObject position = JSONObject.obj;
+			position.AddField ("x", node.transform.position.x);
+			position.AddField ("y", node.transform.position.y);
+			position.AddField ("z", node.transform.position.z);
+			jNode.AddField ("position", position);
+			jNode.AddField ("arrivals", scptNode.occupants);
 			//EDGES
-			JArray jEdges = new JArray ();
-			foreach (GameObject edge in scptNode.Edges) {
-				EdgeScript scptEdge = edge.GetComponent<EdgeScript>();
-				NodeScript A = scptEdge.start.GetComponent<NodeScript>();
-				NodeScript B = scptEdge.end.GetComponent<NodeScript>();
+			JSONObject jEdges = JSONObject.arr;
+			foreach (EdgeScript edge in scptNode.GetComponentsInChildren<EdgeScript>()) {
+				//EdgeScript scptEdge = edge.GetComponent<EdgeScript>();
+				NodeScript A = edge.start.GetComponent<NodeScript>();
+				NodeScript B = edge.end.GetComponent<NodeScript>();
 
-				JObject jEdge = new JObject ();
-				jEdge.Add ("start", A.Id);
-				jEdge.Add ("end", B.Id);
-				jEdge.Add ("cost", scptEdge.cost);
-				jEdge.Add ("flowRate", scptEdge.flowRate);
+				JSONObject jEdge = JSONObject.obj;
+				jEdge.AddField ("start", A.Id);
+				jEdge.AddField ("end", B.Id);
+				jEdge.AddField ("cost", edge.cost);
+				jEdge.AddField ("flowRate", edge.flowRate);
 				jEdges.Add (jEdge);
 			}
+			jNode.AddField ("edges", jEdges);
+			nodes.Add (jNode);
 
 		}
 
-		json.Add ("nodes", nodes);
+		json.AddField ("nodes", nodes);
 
-		JArray elevators = new JArray ();
+		JSONObject elevators = JSONObject.arr;
 
 		GameObject[] Elevators = GameObject.FindGameObjectsWithTag ("Elevator");
 		
 		foreach (GameObject elevator in Elevators) {
 			ElevatorScript elevate = elevator.GetComponent<ElevatorScript>();
 
-			JObject jElevator = new JObject();
-			jElevator.Add ("initialLocation", elevate.initialLocation);
-			JArray jEdges = new JArray();
+			JSONObject jElevator = JSONObject.obj;
+			jElevator.AddField ("initialLocation", elevate.initialLocation);
+			JSONObject jEdges = JSONObject.arr;
 
 			foreach ( GameObject edge in elevate.edges){
-				JObject jEdge = new JObject();
+				JSONObject jEdge = JSONObject.obj;
 				EdgeScript scpt = edge.GetComponent<EdgeScript>();
 				NodeScript A = scpt.start.GetComponent<NodeScript>();
 				NodeScript B = scpt.end.GetComponent<NodeScript>();
 
-				jEdge.Add ("start", A.Id);
-				jEdge.Add ("end", B.Id);
+				jEdge.AddField ("start", A.Id);
+				jEdge.AddField ("end", B.Id);
 			}
 		}
 
-		json.Add ("elevators", elevators);
+		json.AddField ("elevators", elevators);
 
 		StreamWriter fileOut = File.CreateText (path);
 
 		fileOut.WriteLine (json.ToString());
 		fileOut.Close ();
-*/
 
 	}
 
-	public void loadGraph( string path ) {
+	public void loadGraph() {
 
 		//Destroy all nodes
-		GameObject[] Nodes = GameObject.FindGameObjectsWithTag ("Node");
-		foreach (GameObject node in Nodes) {
-			Destroy (node);
-		}
+
 
 		//read file
 		string line;
 		using (StreamReader sr = new StreamReader(path)) {
 				line = sr.ReadToEnd();
 		}
+
 		JsonReader reader = new JsonReader ();
 
 		var output = reader.Read<Dictionary<string, object>>(line);
 		Dictionary<string, object>[] jnode = (Dictionary<string, object>[]) output ["nodes"];
 		//create nodes
+		print ("CREATE NODES");
+		foreach (Dictionary<string, object> jNode in jnode) {
+
+			GameObject node = (GameObject) Instantiate (nodeTemp);
+
+
+			node.name = jNode["id"].ToString();
+			NodeScript scpt = node.GetComponent<NodeScript>();
+
+			scpt.Id = jNode["id"].ToString();
+			scpt.occupants = (int) jNode["arrivals"];
+
+			Dictionary<string, object> pos =  (Dictionary<string, object>) jNode["position"];
+			node.transform.position = new Vector3( float.Parse (pos["x"].ToString()),
+			                                      float.Parse( pos["y"].ToString()),
+			                                      float.Parse (pos["z"].ToString()));
+		}
+		print ("CREATE EDGES");
+		foreach (Dictionary<string, object> jNode in jnode) {
+			foreach (Dictionary<string, object> jEdge in (Dictionary<string, object>[])  jNode["edges"]) {
+				GameObject start = GameObject.Find (jEdge["start"].ToString());
+				GameObject end = GameObject.Find (jEdge["end"].ToString());
+
+				GameObject edge = (GameObject)Instantiate (edgeTemp,
+				                                           start.transform.position,
+				                                           start.transform.rotation);
+				edge.name = jEdge ["start"].ToString () + "->" + jEdge ["end"].ToString ();
+				EdgeScript edgeScpt = edge.GetComponent<EdgeScript> ();
+
+
+				edgeScpt.flowRate = (int)jEdge ["flowRate"];
+				edgeScpt.cost = (int)jEdge ["cost"];
+				edgeScpt.start = start;
+				edgeScpt.end = end;
+				edge.transform.parent=start.transform;
+			}
+		}
+
 		//Create edges
-		//
 	}
 }
