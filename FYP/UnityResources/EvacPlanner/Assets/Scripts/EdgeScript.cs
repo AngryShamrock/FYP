@@ -19,7 +19,8 @@ public class EdgeScript : MonoBehaviour {
 	
 	// Update is called once per frame
 	void Update () {
-		line.SetPosition (0, start.transform.position-Vector3.forward*0.01f);
-		line.SetPosition (1, end.transform.position+Vector3.forward*0.01f);
+		line.SetPosition (0, start.transform.position+Vector3.forward*0.5f);
+		line.SetPosition (1, end.transform.position-Vector3.forward*0.5f);
+		name = start.name + "->" + end.name;
 	}
 }

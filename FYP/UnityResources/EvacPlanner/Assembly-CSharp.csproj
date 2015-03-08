@@ -54,6 +54,7 @@
      <Compile Include="Assets\Scripts\NodeScript.cs" />
      <Compile Include="Assets\VectorTemplates.cs" />
      <None Include="Assets\lib\JsonFx.xml" />
+     <None Include="Assets\AlphaSelfIllum.shader" />
      <None Include="Assets\lib\Newtonsoft.Json.xml" />
  <Reference Include="UnityEngine.UI">
  <HintPath>D:/Program Files (x86)/Unity/Editor/Data/UnityExtensions/Unity/GUISystem/4.6.0/UnityEngine.UI.dll</HintPath>

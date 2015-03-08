@@ -14,6 +14,6 @@ public class NodeScript : MonoBehaviour {
 	
 	// Update is called once per frame
 	void Update () {
-		
+		Id = name;
 	}
 }

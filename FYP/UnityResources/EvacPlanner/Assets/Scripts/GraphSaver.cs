@@ -6,12 +6,14 @@ using JsonFx.Model;
 using JsonFx;
 using System.Collections.Generic;
 //using Newtonsoft.Json.Linq;
+using System;
 
 public class GraphSaver : MonoBehaviour {
 	public string path;
 	public string dir;
 	public GameObject nodeTemp;
 	public GameObject edgeTemp;
+	public GameObject elevatorTemp;
 	private bool loadNext;
 	// Use this for initialization
 	void Start () {
@@ -21,18 +23,25 @@ public class GraphSaver : MonoBehaviour {
 	// Update is called once per frame
 	void Update () {
 		if (loadNext) {
+			loadNext = false;
 						loadGraph ();
-						loadNext = false;
+						
 		}
 		if (Input.GetKeyDown (KeyCode.S)) {
 			SaveGraph ();		
 		}
 
 		if (Input.GetKeyDown( KeyCode.L)) {
+			//Destroy Nodes and Elevators
 			GameObject[] Nodes = GameObject.FindGameObjectsWithTag ("Node");
 			foreach (GameObject node in Nodes) {
 				Destroy (node);
 			}
+
+			foreach(GameObject elevator in GameObject.FindGameObjectsWithTag ("Elevator")){
+				Destroy ( elevator );
+			}
+
 			loadNext= true;
 
 
@@ -56,6 +65,7 @@ public class GraphSaver : MonoBehaviour {
 			position.AddField ("z", node.transform.position.z);
 			jNode.AddField ("position", position);
 			jNode.AddField ("arrivals", scptNode.occupants);
+			jNode.AddField ("isGoal", scptNode.goalState);
 			//EDGES
 			JSONObject jEdges = JSONObject.arr;
 			foreach (EdgeScript edge in scptNode.GetComponentsInChildren<EdgeScript>()) {
@@ -85,18 +95,19 @@ public class GraphSaver : MonoBehaviour {
 			ElevatorScript elevate = elevator.GetComponent<ElevatorScript>();
 
 			JSONObject jElevator = JSONObject.obj;
+			jElevator.AddField ("id", elevate.Id);
 			jElevator.AddField ("initialLocation", elevate.initialLocation);
-			JSONObject jEdges = JSONObject.arr;
+			JSONObject jNodes = JSONObject.arr;
 
-			foreach ( GameObject edge in elevate.edges){
-				JSONObject jEdge = JSONObject.obj;
-				EdgeScript scpt = edge.GetComponent<EdgeScript>();
-				NodeScript A = scpt.start.GetComponent<NodeScript>();
-				NodeScript B = scpt.end.GetComponent<NodeScript>();
+			foreach ( GameObject node in elevate.nodes){
+				JSONObject jNode = JSONObject.obj;
+				NodeScript scpt = node.GetComponent<NodeScript>();
 
-				jEdge.AddField ("start", A.Id);
-				jEdge.AddField ("end", B.Id);
+				jNode.AddField ("id", scpt.Id);
+				jNodes.Add (jNode);
 			}
+			jElevator.AddField ( "nodes", jNodes);
+			elevators.Add (jElevator);
 		}
 
 		json.AddField ("elevators", elevators);
@@ -135,6 +146,7 @@ public class GraphSaver : MonoBehaviour {
 
 			scpt.Id = jNode["id"].ToString();
 			scpt.occupants = (int) jNode["arrivals"];
+			scpt.goalState = (bool) jNode["isGoal"];
 
 			Dictionary<string, object> pos =  (Dictionary<string, object>) jNode["position"];
 			node.transform.position = new Vector3( float.Parse (pos["x"].ToString()),
@@ -142,26 +154,57 @@ public class GraphSaver : MonoBehaviour {
 			                                      float.Parse (pos["z"].ToString()));
 		}
 		print ("CREATE EDGES");
+		//Create edges
 		foreach (Dictionary<string, object> jNode in jnode) {
-			foreach (Dictionary<string, object> jEdge in (Dictionary<string, object>[])  jNode["edges"]) {
-				GameObject start = GameObject.Find (jEdge["start"].ToString());
-				GameObject end = GameObject.Find (jEdge["end"].ToString());
+			try {
+				foreach (Dictionary<string, object> jEdge in (Dictionary<string, object>[])  jNode["edges"]) {
+					GameObject start = GameObject.Find (jEdge["start"].ToString());
+					GameObject end = GameObject.Find (jEdge["end"].ToString());
 
-				GameObject edge = (GameObject)Instantiate (edgeTemp,
-				                                           start.transform.position,
-				                                           start.transform.rotation);
-				edge.name = jEdge ["start"].ToString () + "->" + jEdge ["end"].ToString ();
-				EdgeScript edgeScpt = edge.GetComponent<EdgeScript> ();
+					GameObject edge = (GameObject)Instantiate (edgeTemp,
+					                                           start.transform.position,
+					                                           start.transform.rotation);
+					edge.name = jEdge ["start"].ToString () + "->" + jEdge ["end"].ToString ();
+					EdgeScript edgeScpt = edge.GetComponent<EdgeScript> ();
 
 
-				edgeScpt.flowRate = (int)jEdge ["flowRate"];
-				edgeScpt.cost = (int)jEdge ["cost"];
-				edgeScpt.start = start;
-				edgeScpt.end = end;
-				edge.transform.parent=start.transform;
+					edgeScpt.flowRate = (int)jEdge ["flowRate"];
+					edgeScpt.cost = (int)jEdge ["cost"];
+					edgeScpt.start = start;
+					edgeScpt.end = end;
+					edge.transform.parent=start.transform;
+				}
+			} catch (InvalidCastException e) {
 			}
 		}
 
-		//Create edges
+		//Create elevators
+		try {
+			foreach (Dictionary<string, object> jElevator in (Dictionary<string, object>[]) output ["elevators"]) {
+				//instantiate new elevator
+				GameObject elevator = (GameObject) Instantiate (elevatorTemp);
+				elevator.name = jElevator["id"].ToString() + "elevator";
+				ElevatorScript scpt = elevator.GetComponent<ElevatorScript>();
+
+				Dictionary<string, object>[] jNodes = (Dictionary<string, object>[]) jElevator["nodes"];
+
+				GameObject[] nodes = new GameObject[jNodes.Length];
+				//Create new Edge array
+				int index = 0;
+
+				foreach ( Dictionary<string, object> node in jNodes){
+					nodes[index] = GameObject.Find( node["id"].ToString ());
+					index++;
+				}
+
+				scpt.Id = jElevator["id"].ToString();
+				scpt.nodes = nodes;
+				scpt.initialLocation=jElevator["initialLocation"].ToString ();
+				//Find edges by name
+			}
+		} catch (InvalidCastException e) {
+
+		}
+
 	}
 }
