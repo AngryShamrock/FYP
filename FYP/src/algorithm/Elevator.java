@@ -27,4 +27,12 @@ public class Elevator {
     public void setSchedule ( int t, String id ){
         schedule.put(t, id);
     }
+    
+    public String getSchedule (int t) {
+    	if ( schedule.containsKey(t)) {
+    		return schedule.get(t);
+    	} else {
+    		return null;
+    	}
+    }
 }

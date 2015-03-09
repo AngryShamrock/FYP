@@ -49,11 +49,38 @@ public class SimplePlanner{
              t++;
         }
         */
+        //model.elevators.values();
+        scheduleElevatorMostOccupied(model, t, model.elevators.get("X"));
         planPathsArbitary(model, t);
         
         printGraph( model.getGraphAtTime(0));
         model.export("escapeRoute.txt");
     }
+    
+    public void scheduleElevatorMostOccupied( Model model, int t, Elevator elevator){
+    	
+    	String location = elevator.getSchedule(t);
+    	//Move lift to most occupied floor (t+cost)
+    	
+    	if (location != null && !location.equals("BUSY")) {
+    		int cost = model.getGraphAtTime(t).get(location).edges.get("X1").cost;
+    		for (int i = t; i < t+cost; i++){
+    			elevator.setSchedule(i, "BUSY");
+    		}
+    		elevator.setSchedule(t+cost, "X1");
+    		t=t+cost;
+    		location = "X1";
+    		//wait for 4 steps
+    		model.getGraphAtTime(t).get(location).edges.get("X0").full = false;
+    	}
+    	
+    	//Load lift until full (t+loadtime)
+    	//Move lift to nearest goal (t+cost)
+    	//repeat
+    	
+    }
+    
+    
     //TODO create additional MODEL to store decisions
     public void planPathsArbitary( Model model, int t) {
         for (Node node : model.getGraphAtTime(t).values()) { /** SHOULD USE HUERISTIC FOR SELECTING NODE **/
