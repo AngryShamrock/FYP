@@ -29,7 +29,7 @@ public class GraphSaver : MonoBehaviour {
 						loadGraph ();
 						
 		}
-		if (Input.GetKeyDown (KeyCode.S)) {
+		if (Input.GetKeyDown (KeyCode.K)) {
 			SaveGraph ();		
 		}
 

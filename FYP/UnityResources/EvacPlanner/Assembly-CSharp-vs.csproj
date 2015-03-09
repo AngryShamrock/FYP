@@ -46,6 +46,7 @@
 	</Reference>
   </ItemGroup>
   <ItemGroup>
+     <Compile Include="Assets\BuildingViewer.cs" />
      <Compile Include="Assets\JSONObject.cs" />
      <Compile Include="Assets\JSONTemplates.cs" />
      <Compile Include="Assets\PlanViewer.cs" />

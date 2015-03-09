@@ -71,7 +71,7 @@ public class SimplePlanner{
     		t=t+cost;
     		location = "X1";
     		//wait for 4 steps
-    		model.getGraphAtTime(t).get(location).edges.get("X0").full = false;
+    		model.getGraphAtTime(t+4).get(location).edges.get("X0").full = false;
     	}
     	
     	//Load lift until full (t+loadtime)

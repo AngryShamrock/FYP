@@ -35,6 +35,10 @@ public class EdgeScript : MonoBehaviour {
 	
 	// Update is called once per frame
 	void Update () {
+		if (start.Equals (end)){
+			transform.parent.gameObject.GetComponent<NodeScript>().active=active;
+	
+		}
 		while (lookahead<= viewer.t) {
 			if (!occupantsSchedule.ContainsKey (lookahead)){
 				occupantsSchedule[lookahead] = 0;

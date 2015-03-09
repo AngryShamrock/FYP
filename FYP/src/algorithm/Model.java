@@ -77,8 +77,12 @@ public class Model {
             for (String nodeLabel : elevator.nodes){
             	Node node = graph.get(nodeLabel);
             	for (Edge edge : node.edges.values()){
-            		edge.full=true;
-            		graph.get(edge.end.id).edges.get(nodeLabel).full=true;
+            		if (elevator.nodes.contains(edge.end.id)){
+            			edge.full=true;
+            			//System.out.println("forbidding " + edge.start.id + "->" + edge.end.id);
+            		}
+            		
+            		//graph.get(edge.end.id).edges.get(nodeLabel).full=true;
             	}
             }
         }
