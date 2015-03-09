@@ -8,10 +8,12 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
 
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
@@ -32,21 +34,19 @@ public class Model {
     
     public List<Map<String, Map<String, Integer>>> dangerModel;
     
+    public Set<String> goals;
+    
     
     public Model( String path ) throws IOException{ 
     	dangerModel = new ArrayList<Map<String,Map<String, Integer>>>();
         elevators = new HashMap<String, Elevator>();
+        goals = new HashSet<String>();
         baseGraph = loadScenarioFile( path );
-       plan = new ArrayList<Map<String, Node>>();
+        plan = new ArrayList<Map<String, Node>>();
+        
     }
     
-    public Model ( Map<String, Node> baseGraph, Map<String, Elevator> elevators ){
-    	this.elevators = elevators;
-        this.baseGraph = baseGraph;
-       plan = new ArrayList<Map<String, Node>>();
-    }
-    
-    public Map<String, Node> genGraph(){
+    public Map<String, Node> genGraph(int t){
         
         Map<String, Node> graph = new HashMap<String, Node>();
         Iterator<Entry<String,Node>> iter = baseGraph.entrySet().iterator();
@@ -54,6 +54,9 @@ public class Model {
         while (iter.hasNext()){
             Entry<String,Node> ent = iter.next();
             Node node = new Node( ent.getKey());
+            if (t == 0 ) {
+            	node.arrivals = ent.getValue().arrivals;
+            }
             graph.put(ent.getKey(), node);
         }
         
@@ -71,9 +74,12 @@ public class Model {
         }
         //Remove elevator edges
         for (Elevator elevator : elevators.values()){
-            for (Edge edge : elevator.edges) {
-                //System.out.println("removing edge: " + edge.start.id);
-                graph.get(edge.start.id).edges.remove(edge.end.id);
+            for (String nodeLabel : elevator.nodes){
+            	Node node = graph.get(nodeLabel);
+            	for (Edge edge : node.edges.values()){
+            		edge.full=true;
+            		graph.get(edge.end.id).edges.get(nodeLabel).full=true;
+            	}
             }
         }
         
@@ -85,7 +91,7 @@ public class Model {
         if ( t > graphLookAhead) {
             //GenGraph until t
             for (int i = graphLookAhead+1; i <= t; i++){
-                Map<String, Node> graph = genGraph();
+                Map<String, Node> graph = genGraph(t);
                 /*
                 if (i>0){
                     for ( Node node : graph.values()){
@@ -113,63 +119,63 @@ public class Model {
     
     private Map<String, Node> loadScenarioFile( String path ) throws IOException{
         Map<String, Node> scenario = new HashMap<String, Node>();
-        int lineNo = 0;
         try {
             System.out.println(new File("").getAbsolutePath());
             BufferedReader in = new BufferedReader(new FileReader( new File(path)));
             
             
             //Read file
-            //Throw away first two lines
-            lineNo++;
-            in.readLine();
-            lineNo++;
-            in.readLine();
+            
+            //JSON
+            JSONObject json = (JSONObject) JSONValue.parse(in);
+            //JSON
             //Create Nodes
-            for (String line = in.readLine(); line != null; line = in.readLine()){
-                lineNo++;
-                if (line.equals(":Edges")) {
-                    break;
-                }
-                String[] parts = line.split(", ");
-               scenario.put(parts[0], new Node(parts[0]));
+            for (  Object jNodeTmp : (JSONArray) json.get("nodes")){
+            	JSONObject jNode = (JSONObject) jNodeTmp;
+            	//Create node
+            	Node node = new Node(jNode.get("id").toString());
+            	
+            	node.arrivals = (int) (long) jNode.get("arrivals");
+            	scenario.put(node.id, node);
+            	if ((boolean) jNode.get("isGoal")){
+            		goals.add(node.id);
+            	}
             }
-            
-            for (String line = in.readLine(); line != null; line = in.readLine()){
-                lineNo++;
-                if (line.equals(":Elevators")) {
-                    break;
-                }
-                String[] parts = line.split(", ");
-                Node startNode = scenario.get(parts[0]);
-                Node endNode = scenario.get(parts[1]);
-                startNode.edges.put(parts[1], new Edge( startNode, endNode,
-                        Integer.parseInt(parts[2]), Integer.parseInt(parts[3]))); 
+            	//Foreach node
+            //Create Edges
+            for ( Object jNodeTmp : (JSONArray) json.get("nodes")){
+            	JSONObject jNode = (JSONObject) jNodeTmp;
+            	for (Object jEdgeTmp : (JSONArray) jNode.get("edges")){
+            		JSONObject jEdge = (JSONObject) jEdgeTmp;
+            		//create edge
+            		Node start = scenario.get(jEdge.get("start").toString());
+            		Node end = scenario.get(jEdge.get("end").toString());
+            		int cost = (int) (long) jEdge.get("cost");
+            		int flowRate = (int) (long) jEdge.get("flowRate");
+            		Edge edge = new Edge(start, end, cost, flowRate);
+            		start.edges.put(end.id, edge);
+            	}
+            	//Create node
             }
-            //Read :Edges
-            //Create Edges & add to Nodes
+            //Create Elevators
             
-            // read :Elevators
-            
-            Elevator elevator = null;
-            for (String line = in.readLine(); line != null; line = in.readLine()){
-                lineNo++;
-                String[] parts = line.split(", ");
-                if (line.charAt(0) == '-'){
-                    elevator = new Elevator(parts[0]);
-                    elevators.put(elevator.id, elevator);
-                } else {
-                    elevator.edges.add(scenario.get(parts[0]).edges.get(parts[1]));
-                }
+            for ( Object jElevatorTmp : (JSONArray) json.get("elevators")){
+            	JSONObject jElevator = (JSONObject) jElevatorTmp;
+            	//Create node
+            	String id = jElevator.get("id").toString();
+            	Elevator elevator = new Elevator(id);
+            	elevator.setSchedule(0, jElevator.get("initialLocation").toString());
+            	for ( Object jNodeTmp : (JSONArray) jElevator.get("nodes")){
+            		JSONObject jNode = (JSONObject) jNodeTmp;
+            		elevator.nodes.add(jNode.get("id").toString());
+            	}
+            	elevators.put(elevator.id, elevator);
             }
-            
-            // Read new Elevator
-            // Read edges
             in.close();
         } catch ( Exception e) {
-            System.err.println("Line Number: " + lineNo);
             throw new IOException(e);
         }
+        
         return scenario;
     }
     
@@ -181,22 +187,27 @@ public class Model {
     			//If edge has occupants/signal
     				//create element for edge
     	JSONArray jsonPlan = new JSONArray();
+    	int t = 0;
     	for (Map<String, Node> graph : plan){
-    		JSONArray step = new JSONArray();
+    		JSONObject step = new JSONObject();
+    		
+    		step.put("t", t++);
+    		JSONArray signals = new JSONArray();
     		for ( Node node : graph.values()){
     			
     			for ( Edge edge : node.edges.values() ) {
     				
-    				if (edge.active) {
+    				if (edge.signal || edge.predictedOccupancy>0) {
     					JSONObject jsonEdge = new JSONObject();
         				jsonEdge.put("start",  edge.start.id);
     					jsonEdge.put("end", edge.end.id);
-    					jsonEdge.put("signal", ((edge.active) ? 1 : 0));
+    					jsonEdge.put("signal", edge.signal);
     					jsonEdge.put("inFlow", edge.inFlow);
     					jsonEdge.put("predictedOccupancy", edge.predictedOccupancy);
-    					step.add(jsonEdge);
+    					signals.add(jsonEdge);
     				}
     			}
+    			step.put("signals", signals);
     		}
     		jsonPlan.add( step );
     	}

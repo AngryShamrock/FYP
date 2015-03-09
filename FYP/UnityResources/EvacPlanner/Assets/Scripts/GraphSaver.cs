@@ -15,6 +15,8 @@ public class GraphSaver : MonoBehaviour {
 	public GameObject edgeTemp;
 	public GameObject elevatorTemp;
 	private bool loadNext;
+
+
 	// Use this for initialization
 	void Start () {
 	

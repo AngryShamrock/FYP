@@ -9,7 +9,7 @@ public class Edge {
     public Node start;
     public int cost;
     public int inFlow;
-    public boolean active;
+    public boolean signal;
     public boolean full = false;
     public int flowRate;
     public int predictedOccupancy;

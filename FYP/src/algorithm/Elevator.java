@@ -8,6 +8,7 @@ import java.util.Map;
 public class Elevator {
     
     public List<Edge> edges;
+    public List<String> nodes;
     
     public int capacity;
     public String id;
@@ -16,6 +17,7 @@ public class Elevator {
         this.id = id;
         edges = new ArrayList<Edge>();
         schedule = new HashMap<Integer, String>();
+        nodes = new ArrayList<String>();
     }
 
     public String locationAtTime( int t ) {

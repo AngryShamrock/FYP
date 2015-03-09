@@ -48,6 +48,7 @@
   <ItemGroup>
      <Compile Include="Assets\JSONObject.cs" />
      <Compile Include="Assets\JSONTemplates.cs" />
+     <Compile Include="Assets\PlanViewer.cs" />
      <Compile Include="Assets\Scripts\EdgeScript.cs" />
      <Compile Include="Assets\Scripts\ElevatorScript.cs" />
      <Compile Include="Assets\Scripts\GraphSaver.cs" />
