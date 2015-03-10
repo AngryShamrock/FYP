@@ -32,7 +32,7 @@ public class SimplePlanner{
     
     
     public void execute() throws IOException {
-        Model model = new Model( "g.txt" );
+        Model model = new Model( "UnityResources/EvacPlanner/g.txt" );
         goals.add("E");
         goals.add("F");
         /**
@@ -50,14 +50,19 @@ public class SimplePlanner{
         }
         */
         //model.elevators.values();
-        scheduleElevatorMostOccupied(model, t, model.elevators.get("X"));
-        planPathsArbitary(model, t);
+        //scheduleElevatorHardCode(model, t, model.elevators.get("X"));
+        //planPathsArbitary(model, t);
+        scheduleElevatorsSmart(model, t, model.elevators.values());
         
-        printGraph( model.getGraphAtTime(0));
-        model.export("escapeRoute.txt");
+        printGraph( model.getGraphAtTime(12));
+        model.export("UnityResources/EvacPlanner/escapeRoute.txt");
     }
     
-    public void scheduleElevatorMostOccupied( Model model, int t, Elevator elevator){
+    public void scheduleElevatorsDumb (Model model, int t, Elevator elevator) {
+    	//Go to top, pick people up
+    }
+    
+    public void scheduleElevatorHardCode( Model model, int t, Elevator elevator){
     	
     	String location = elevator.getSchedule(t);
     	//Move lift to most occupied floor (t+cost)
@@ -70,14 +75,172 @@ public class SimplePlanner{
     		elevator.setSchedule(t+cost, "X1");
     		t=t+cost;
     		location = "X1";
-    		//wait for 4 steps
-    		model.getGraphAtTime(t+4).get(location).edges.get("X0").full = false;
+    		//wait for 6 steps
+    		for (int i = 0; i <= 8; i++) {
+    			model.getGraphAtTime(t+i).get(location).edges.get("X1").full = false; //Open doors
+    		}
+    		model.getGraphAtTime(t+8).get(location).edges.get("X0").full = false;
     	}
     	
     	//Load lift until full (t+loadtime)
     	//Move lift to nearest goal (t+cost)
     	//repeat
     	
+    }
+    
+    public void scheduleElevatorsSmart( Model model, int t, Collection<Elevator> elevators) {
+    	//plan paths
+    	//FURTHEST FIRST
+    	planPathsArbitary( model, t);
+    	
+    	PriorityQueue<Elevator> elevatorQueue = new PriorityQueue<Elevator>();
+    	for (Elevator elevator : elevators){
+    		elevator.priority = 0;
+    		elevatorQueue.add(elevator);
+    	}
+    	
+    	while (!elevatorQueue.isEmpty()) {
+    		
+    		Elevator elevator = elevatorQueue.remove();
+    		System.out.println("step: t=" + elevator.priority + " and elevator '"
+    		+ elevator.id + "' at '" +elevator.getSchedule(elevator.priority) +"'" );
+    		
+    		
+    		processElevator( model, elevator.priority, elevator, elevatorQueue);
+    		model.resetSignals();
+    		planPathsArbitary( model, t);
+    	}
+    	//
+    }
+    
+    private void processElevator( Model model, int t, Elevator elevator, PriorityQueue<Elevator> queue ){
+    	//get cost to each stop
+		//Grab 'capacity' people, adding exitTimes
+    	
+    	
+    	
+		String location = elevator.getSchedule(t);
+		Edge route = null;
+		int maxExitSum = 0;
+		int capacity = 20;
+		for (Edge edge : model.getGraphAtTime(t).get(location).edges.values()){
+			if (edge.elevator){
+				System.out.println("Evaluating edge: " + edge.start.id + "->" + edge.end.id);
+				int sum = getExitSum( model, t+ edge.cost, capacity, edge.end.id);
+				System.out.println( sum);
+				if (sum > maxExitSum) {
+					maxExitSum = sum;
+					route = edge;
+				}
+			}
+		}
+		if (route == null) {
+			return;
+		}
+		elevator.setSchedule(t+route.cost, route.end.id);
+		//Wait for 5 units
+		int wait = 10;
+		model.getGraphAtTime(t).get(location).edges.get(route.end.id).full=false;
+		System.out.println("opening edge " + location + "->" + route.end.id + " @ " + (t+route.cost)  );
+		
+		
+		// move lift
+		
+		String dropOff = bestDropOff(model, t+route.cost+wait+1, route.end.id, elevator.nodes);
+		/*
+		for (int i = 0; i < wait ; i++){
+			System.out.println("opening edge " + route.end.id + "->" + route.end.id + " @ " + (t+route.cost+i)  );
+			model.getGraphAtTime(t+route.cost+i).get(route.end.id).edges.get(route.end.id).full=false;
+		}
+		*/
+		int cost = t+route.cost+wait+1;
+		Edge dropOffEdge = model.getGraphAtTime(cost).get(route.end.id).edges.get(dropOff);
+		
+		
+		
+		
+		for (int i = 0; i< wait; i++){
+			model.getGraphAtTime(cost-i).get(route.end.id).edges.get(route.end.id).full=false;
+		}
+		dropOffEdge.full=false;
+		
+		
+		System.out.println("opening edge:" + route.end.id + "->" + dropOff + " @ " + cost);
+		cost += dropOffEdge.cost+2;
+		elevator.priority = cost;
+		elevator.setSchedule(cost, dropOff);
+		if (cost < 50) {
+			queue.add(elevator);
+		}
+		
+		
+		System.out.println(elevator.schedule.keySet());
+    }
+    
+    private int getExitSum( Model model, int t, int people, String node){
+    	int currentPeople = 0;
+    	int exitSum = 0;
+    	int cost = 0;
+    	System.out.println(t);
+    	ArrayList<Edge> edgeList = new ArrayList<Edge>();
+    	edgeList.addAll(model.getGraphAtTime(t).get(node).edges.values());
+    	int loops = 0;
+    	int maxloops = 50;
+    	while (edgeList.size()>0 && currentPeople < people && loops < maxloops && exitSum == 0){
+    		
+    		loops++;
+    		//System.out.println("Finding people " + currentPeople);
+    		Edge edge = edgeList.remove(0);
+    		if (isGoal(edge.end.id)) {
+    			return 0;
+    		}
+    		if (!edge.elevator){
+    			currentPeople +=edge.inFlow;
+        		exitSum += (edge.exitTime*edge.predictedOccupancy);
+        		edgeList.addAll(edge.end.edges.values());
+        		cost += edge.cost;
+        		
+    		}
+    		
+    	}
+    	return exitSum;
+    }
+    
+    private String bestPickUp( Model model, int t, String source, List<String> nodes){
+    	int people;
+    	int maxExitTime = 0;
+    	int distance;
+    	int capacity = model.getGraphAtTime(t).get(source).edges.get(source).flowRate;
+    	for (String node : nodes ) {
+    		int exitTime = 0;
+    		//get exitSum for node.neighbours
+    		distance = 0;
+    		Edge outgoing = model.getGraphAtTime(t).get(source).edges.get(node);
+    		distance += outgoing.cost;
+    		int i = 0;
+    		while (exitTime ==0 && i<50 ) {
+    			
+    			i++;
+    		}
+    	}
+		return null;
+    }
+    
+    private String bestDropOff( Model model, int t, String source, List<String> nodes){
+    	int minDist = Integer.MAX_VALUE;
+    	String dropOff = null;
+    	
+    	for (String node : nodes){
+    		t = t + model.genGraph(t).get(source).edges.get(node).cost;
+    		List<Vertex> path = findLeastCostPathToGoal( model, t, node);
+    		int pathCost = path.get(path.size()-1).distance;
+    		if (pathCost < minDist){
+    			minDist = pathCost;
+    			dropOff = node;
+    		}
+    	}
+    	
+    	return dropOff;
     }
     
     
@@ -89,11 +252,13 @@ public class SimplePlanner{
                     int groupSize = 1;
                     List<Vertex> path = findLeastCostPathToGoal(  model, t, node.id);
                     //System.out.println("FINDING DIR FOR:" + node.id + " WITH " + groupSize + "PEOPLE");
+                    int pathCost = path.get(path.size()-1).distance;
                     for (Vertex vert : path){
                         if (vert.prev != null){
                             Node tmp = model.getGraphAtTime(t+vert.prev.distance).get(vert.prev.name);
                             Edge outgoingEdge = tmp.edges.get(vert.name);
                             outgoingEdge.signal=true;
+                            outgoingEdge.exitTime = pathCost;
                             if (groupSize > outgoingEdge.flowRate){
                                 groupSize = outgoingEdge.flowRate;
                             }

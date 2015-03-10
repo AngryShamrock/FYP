@@ -11,9 +11,11 @@ public class Edge {
     public int inFlow;
     public boolean signal;
     public boolean full = false;
+    public boolean elevator;
     public int flowRate;
     public int predictedOccupancy;
     public int danger;
+    public int exitTime;
     
     public Edge(Node start, Node end, int cost, int flowRate){
         this.start=start;

@@ -46,6 +46,28 @@ public class Model {
         
     }
     
+    public void resetSignals() {
+    	List<Map<String, Node>> oldPlan = plan;
+    	plan = new ArrayList<Map<String, Node>>();
+    	int oldLookAhead = graphLookAhead;
+    	graphLookAhead = -1;
+    	copyOldElevators( oldPlan, oldLookAhead );
+    }
+    
+    private void copyOldElevators(List<Map<String, Node>>  oldPlan, int oldLookAhead ) {
+    	for (int i = 0; i <= oldLookAhead; i++) {
+    		for (Elevator elevator : elevators.values()) {
+        		for (String node : elevator.nodes) {
+        			for (Edge edge : getGraphAtTime(i).get(node).edges.values()) {
+        				edge.full = oldPlan.get(i).get(edge.start.id).edges.get(edge.end.id).full;
+
+        			}
+        		}
+        	}
+    		getGraphAtTime(i);
+    	}
+    }
+    
     public Map<String, Node> genGraph(int t){
         
         Map<String, Node> graph = new HashMap<String, Node>();
@@ -68,8 +90,13 @@ public class Model {
             //Copy each edge
             while (edgeIter.hasNext()){
                 Entry<String, Edge> edgeEnt = edgeIter.next();
-                ent.getValue().edges.put(edgeEnt.getKey(), new Edge( ent.getValue(),
-                        graph.get(edgeEnt.getKey()), edgeEnt.getValue().cost, edgeEnt.getValue().flowRate));
+                Edge newEdge = new Edge( ent.getValue(),
+                        graph.get(edgeEnt.getKey()), edgeEnt.getValue().cost, edgeEnt.getValue().flowRate);
+                
+                newEdge.elevator = edgeEnt.getValue().elevator;
+                        
+                ent.getValue().edges.put(edgeEnt.getKey(), newEdge );
+                
             }
         }
         //Remove elevator edges
@@ -79,6 +106,7 @@ public class Model {
             	for (Edge edge : node.edges.values()){
             		if (elevator.nodes.contains(edge.end.id)){
             			edge.full=true;
+            			edge.elevator= true;
             			//System.out.println("forbidding " + edge.start.id + "->" + edge.end.id);
             		}
             		

@@ -5,14 +5,14 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-public class Elevator {
+public class Elevator implements Comparable<Elevator> {
     
     public List<Edge> edges;
     public List<String> nodes;
-    
+    public Integer priority = 0;
     public int capacity;
     public String id;
-    private Map<Integer, String> schedule;
+    public Map<Integer, String> schedule;
     public Elevator( String id) {
         this.id = id;
         edges = new ArrayList<Edge>();
@@ -35,4 +35,9 @@ public class Elevator {
     		return null;
     	}
     }
+
+	@Override
+	public int compareTo(Elevator o) {
+		return priority.compareTo(o.priority);
+	}
 }
