@@ -50,9 +50,9 @@ public class SimplePlanner{
         }
         */
         //model.elevators.values();
-        //scheduleElevatorHardCode(model, t, model.elevators.get("X"));
-        //planPathsArbitary(model, t);
-        scheduleElevatorsSmart(model, t, model.elevators.values());
+        scheduleElevatorHardCode(model, t, model.elevators.get("X"));
+        planPathsArbitary(model, t);
+        //scheduleElevatorsSmart(model, t, model.elevators.values());
         
         printGraph( model.getGraphAtTime(12));
         model.export("UnityResources/EvacPlanner/escapeRoute.txt");
