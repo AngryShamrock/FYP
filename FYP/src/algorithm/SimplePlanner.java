@@ -77,9 +77,9 @@ public class SimplePlanner{
     		location = "X1";
     		//wait for 6 steps
     		for (int i = 0; i <= 8; i++) {
-    			model.getGraphAtTime(t+i).get(location).edges.get("X1").full = false; //Open doors
+    			model.getGraphAtTime(t+i).get(location).edges.get("X1").blocked = false; //Open doors
     		}
-    		model.getGraphAtTime(t+8).get(location).edges.get("X0").full = false;
+    		model.getGraphAtTime(t+8).get(location).edges.get("X0").blocked = false;
     	}
     	
     	//Load lift until full (t+loadtime)
@@ -140,7 +140,7 @@ public class SimplePlanner{
 		elevator.setSchedule(t+route.cost, route.end.id);
 		//Wait for 5 units
 		int wait = 10;
-		model.getGraphAtTime(t).get(location).edges.get(route.end.id).full=false;
+		model.getGraphAtTime(t).get(location).edges.get(route.end.id).blocked=false;
 		System.out.println("opening edge " + location + "->" + route.end.id + " @ " + (t+route.cost)  );
 		
 		
@@ -160,9 +160,9 @@ public class SimplePlanner{
 		
 		
 		for (int i = 0; i< wait; i++){
-			model.getGraphAtTime(cost-i).get(route.end.id).edges.get(route.end.id).full=false;
+			model.getGraphAtTime(cost-i).get(route.end.id).edges.get(route.end.id).blocked=false;
 		}
-		dropOffEdge.full=false;
+		dropOffEdge.blocked=false;
 		
 		
 		System.out.println("opening edge:" + route.end.id + "->" + dropOff + " @ " + cost);
@@ -232,7 +232,7 @@ public class SimplePlanner{
     	
     	for (String node : nodes){
     		t = t + model.genGraph(t).get(source).edges.get(node).cost;
-    		List<Vertex> path = findLeastCostPathToGoal( model, t, node);
+    		List<Vertex> path = model.findLeastCostPathToGoal(t, node, true, false);
     		int pathCost = path.get(path.size()-1).distance;
     		if (pathCost < minDist){
     			minDist = pathCost;
@@ -250,7 +250,7 @@ public class SimplePlanner{
             if (!isGoal(node.id)){
                 while (node.arrivals>0) {
                     int groupSize = 1;
-                    List<Vertex> path = findLeastCostPathToGoal(  model, t, node.id);
+                    List<Vertex> path = model.findLeastCostPathToGoal(t, node.id, false, false);
                     //System.out.println("FINDING DIR FOR:" + node.id + " WITH " + groupSize + "PEOPLE");
                     int pathCost = path.get(path.size()-1).distance;
                     for (Vertex vert : path){
@@ -270,7 +270,7 @@ public class SimplePlanner{
                             	predictedOccupancy += groupSize;
                             }
                             if (outgoingEdge.inFlow >= outgoingEdge.flowRate){
-                                outgoingEdge.full = true;
+                                outgoingEdge.blocked = true;
                             }
                             
                         }
@@ -285,64 +285,6 @@ public class SimplePlanner{
     }
 
     
-    private List<Vertex> findLeastCostPathToGoal( Model model, int t, String source) {
-        //Initialise shortest path for every vertex
-        Map<String, Map<Integer, Vertex>> verts = new HashMap<String, Map<Integer, Vertex>>();
-        int offset = 0;
-        PriorityQueue<Vertex> queue = new PriorityQueue<Vertex>();
-        
-        for (String key : model.getGraphAtTime(t).keySet()) {
-            verts.put(key, new HashMap<Integer, Vertex>()); 
-        }
-        
-        queue.add( new Vertex(source, 0, 0, null));
-        // main loop
-        Vertex goal = null;
-        while (!queue.isEmpty()){
-            Vertex u = queue.poll();
-            if (isGoal(u.name)) {
-                goal = u;
-                break;
-            } else {
-                for (Edge edge : model.getGraphAtTime(t + u.distance).get(u.name).edges.values()){
-                	if (!edge.full){
-                		u.visited= true;
-                        //System.out.println("Adding: " + edge.end.id + " at " + (u.distance + edge.cost));
-                        Integer length = u.distance + edge.cost;
-                        if (!verts.get(edge.end.id).containsKey(length)) {
-                            //Have not met vert yet, add it to the map
-                            Vertex newVert = new Vertex(edge.end.id, length, u.danger+edge.danger, u );
-                            
-                            verts.get(edge.end.id).put(length, newVert);
-                            queue.add( newVert );
-                            
-                            //System.out.println("Adding: " + edge.end.id + " at " + (u.distance + edge.cost));
-                        }
-                	}
-                    
-                }
-            }    
-        }
-        Vertex current = goal;
-        Stack<Vertex> pathStack = new Stack<Vertex>();
-        pathStack.push(current);
-        if (current == null) {
-        	System.err.println("NO PATH FOUND");
-        	return new ArrayList<Vertex>();
-        	
-        }
-        while (current.prev != null ) { 
-            pathStack.push(current.prev);
-            current = current.prev;
-            
-        }
-        List<Vertex> path = new ArrayList<Vertex>();
-        while (!pathStack.isEmpty()) {
-            path.add(pathStack.pop());
-            
-        }
-        return path;
-    }
 
     private boolean isGoal(String u) {
         return goals.contains(u);
@@ -363,7 +305,7 @@ public class SimplePlanner{
                 System.out.println(edge.start.id + " -> " + edge.end.id
                         + " ( " + edge.cost + ", " + edge.flowRate + " )" + "#" +
                 		edge.predictedOccupancy + ((edge.signal) ? "<>" : "") +
-                		((edge.full) ? "><" : "")  );
+                		((edge.blocked) ? "><" : "")  );
             }
         }
     }

@@ -12,6 +12,8 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.PriorityQueue;
+import java.util.Stack;
 import java.util.Map.Entry;
 import java.util.Set;
 
@@ -59,7 +61,7 @@ public class Model {
     		for (Elevator elevator : elevators.values()) {
         		for (String node : elevator.nodes) {
         			for (Edge edge : getGraphAtTime(i).get(node).edges.values()) {
-        				edge.full = oldPlan.get(i).get(edge.start.id).edges.get(edge.end.id).full;
+        				edge.blocked = oldPlan.get(i).get(edge.start.id).edges.get(edge.end.id).blocked;
 
         			}
         		}
@@ -79,6 +81,8 @@ public class Model {
             if (t == 0 ) {
             	node.arrivals = ent.getValue().arrivals;
             }
+            node.elevator = ent.getValue().elevator;
+            node.t=t;
             graph.put(ent.getKey(), node);
         }
         
@@ -105,7 +109,7 @@ public class Model {
             	Node node = graph.get(nodeLabel);
             	for (Edge edge : node.edges.values()){
             		if (elevator.nodes.contains(edge.end.id)){
-            			edge.full=true;
+            			edge.blocked=true;
             			edge.elevator= true;
             			//System.out.println("forbidding " + edge.start.id + "->" + edge.end.id);
             		}
@@ -139,7 +143,70 @@ public class Model {
             graphLookAhead = t;
         }
         return plan.get(t);
+      
     }
+    
+    
+    public List<Vertex> findLeastCostPathToGoal(int t, String source, boolean allowBlocked, boolean blockLifts) {
+        //Initialise shortest path for every vertex
+        Map<String, Map<Integer, Vertex>> verts = new HashMap<String, Map<Integer, Vertex>>();
+        int offset = 0;
+        PriorityQueue<Vertex> queue = new PriorityQueue<Vertex>();
+        
+        for (String key : getGraphAtTime(t).keySet()) {
+            verts.put(key, new HashMap<Integer, Vertex>()); 
+        }
+        
+        queue.add( new Vertex(source, 0, 0, null));
+        // main loop
+        Vertex goal = null;
+        while (!queue.isEmpty()){
+            Vertex u = queue.poll();
+            if (goals.contains(u.name)) {
+                goal = u;
+                break;
+            } else {
+                for (Edge edge : getGraphAtTime(t + u.distance).get(u.name).edges.values()){
+                	if ((!edge.blocked || allowBlocked) && (!edge.elevator || !blockLifts )){
+                		u.visited= true;
+                        //System.out.println("Adding: " + edge.end.id + " at " + (u.distance + edge.cost));
+                        Integer length = u.distance + edge.cost;
+                        if (!verts.get(edge.end.id).containsKey(length)) {
+                            //Have not met vert yet, add it to the map
+                            Vertex newVert = new Vertex(edge.end.id, length, u.danger+edge.danger, u );
+                            
+                            verts.get(edge.end.id).put(length, newVert);
+                            queue.add( newVert );
+                            
+                            //System.out.println("Adding: " + edge.end.id + " at " + (u.distance + edge.cost));
+                        }
+                	}
+                    
+                }
+            }    
+        }
+        Vertex current = goal;
+        Stack<Vertex> pathStack = new Stack<Vertex>();
+        pathStack.push(current);
+        if (current == null) {
+        	System.err.println("NO PATH FOUND");
+        	return new ArrayList<Vertex>();
+        	
+        }
+        while (current.prev != null ) { 
+            pathStack.push(current.prev);
+            current = current.prev;
+            
+        }
+        List<Vertex> path = new ArrayList<Vertex>();
+        while (!pathStack.isEmpty()) {
+            path.add(pathStack.pop());
+            
+        }
+        return path;
+    }
+    
+    
     //GetGraphAtTimeT
     
     //GetEdgesAtTimeT
@@ -195,12 +262,17 @@ public class Model {
             	JSONObject jElevator = (JSONObject) jElevatorTmp;
             	//Create node
             	String id = jElevator.get("id").toString();
-            	Elevator elevator = new Elevator(id);
+            	Elevator elevator = new Elevator(this, id);
             	elevator.setSchedule(0, jElevator.get("initialLocation").toString());
+            	elevator.location = jElevator.get("initialLocation").toString();
+            	
             	for ( Object jNodeTmp : (JSONArray) jElevator.get("nodes")){
             		JSONObject jNode = (JSONObject) jNodeTmp;
-            		elevator.nodes.add(jNode.get("id").toString());
+            		String nodeId = jNode.get("id").toString();
+            		elevator.nodes.add(nodeId);
+            		scenario.get(nodeId).elevator = id;
             	}
+            	elevator.capacity = scenario.get(elevator.nodes.get(0)).edges.get(elevator.nodes.get(0)).flowRate;
             	elevators.put(elevator.id, elevator);
             }
             in.close();
@@ -241,7 +313,10 @@ public class Model {
     			}
     			step.put("signals", signals);
     		}
-    		jsonPlan.add( step );
+    		if (signals.size()>0){
+    			jsonPlan.add( step );
+    		}
+    		
     	}
     	try {
 			FileWriter writer = new FileWriter(new File(fileName));

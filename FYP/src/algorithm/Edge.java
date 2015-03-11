@@ -10,7 +10,7 @@ public class Edge {
     public int cost;
     public int inFlow;
     public boolean signal;
-    public boolean full = false;
+    public boolean blocked = false;
     public boolean elevator;
     public int flowRate;
     public int predictedOccupancy;
