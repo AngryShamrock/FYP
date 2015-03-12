@@ -32,10 +32,8 @@ public class CombinedPlanner{
     
     
     public void execute() throws IOException {
-        Model model = new Model( "UnityResources/EvacPlanner/g.txt" );
+        Model model = new Model( "UnityResources/EvacPlanner/g3.txt" );
         goals = model.goals;
-        goals.add("E");
-        goals.add("F");
         /**
          * MODIFICATION
          */
@@ -46,7 +44,7 @@ public class CombinedPlanner{
         //scheduleElevatorsSmart(model, t, model.elevators.values());
         
         printGraph( model.getGraphAtTime(12));
-        model.export("UnityResources/EvacPlanner/ComboPlan.txt");
+        model.export("UnityResources/EvacPlanner/ComboPlan3.txt");
     }
     
     
@@ -76,7 +74,7 @@ public class CombinedPlanner{
     //TODO create additional MODEL to store decisions
     public void planPathsFurthestFirst( Model model, int t) {
     	//Sort nodes in descending order according to cost
-    	PriorityQueue<Node> queue = new PriorityQueue<Node>( 10, Collections.reverseOrder(new Node.NodeCostComparator())); 
+    	PriorityQueue<Node> queue = new PriorityQueue<Node>( 10, Collections.reverseOrder(new Node.NodeComboComparator())); 
     	for (Node node : model.getGraphAtTime(t).values()) {
     		List<Vertex> path = model.findLeastCostPathToGoal( t, node.id, false, true);
     		node.costToGoal = path.get(path.size()-1).distance;
@@ -91,10 +89,11 @@ public class CombinedPlanner{
         while (!queue.isEmpty()) {
         	Node node = queue.remove();
         	t = node.t;
+        	System.out.println("Node id: " + node.id + " @ " + t );
             if (!isGoal(node.id)){
                 while (node.arrivals>0) {
                     int groupSize = 1;
-                   // System.out.println("Finding paths for " + node.id + " at " + t);
+                    //System.out.println("Finding paths for " + node.id + " at " + t);
                     List<Vertex> path = model.findLeastCostPathToGoal(t, node.id, false, false);
                     //System.out.println("FINDING DIR FOR:" + node.id + " WITH " + groupSize + "PEOPLE");
                     int pathCost = path.get(path.size()-1).distance;
@@ -110,7 +109,14 @@ public class CombinedPlanner{
                             Node tmp = model.getGraphAtTime(t+vert.prev.distance).get(vert.prev.name);
                             
                             if (tmp.elevator != null ){
-                            	System.out.println("1 taking elevator: " + tmp.elevator + " from: " + tmp.id);
+                            	System.out.println("1 from " + node.id + " taking elevator: " + tmp.elevator + " from: " + tmp.id + " @ " + (t+vert.prev.distance));
+                            	String pathStr = "";
+                            	Vertex cur = vert;
+                            	while (cur.prev != null) {
+                            		pathStr += " " + cur.prev.name;
+                            		cur = cur.prev;
+                            	}
+                            	System.out.println("Path: " + pathStr);
                             	//Lift is free, because this edge was available
                             	//Would make our journey shorter, because it's part of the leastCostPath
                             	
@@ -120,7 +126,7 @@ public class CombinedPlanner{
                             	
                             	List<Node> newNodes = elevator.updateAvailability(t+vert.prev.distance);
                             	if (newNodes.size()>0){
-                            		System.out.println("drop off at " + newNodes.get(0).id + " " + newNodes.get(0).t + "with " + newNodes.get(0).arrivals + " people");
+                            		System.out.println("drop off at " + newNodes.get(0).id + " " + newNodes.get(0).t + " with " + newNodes.get(0).arrivals + " people");
                             	}
                             	queue.addAll( newNodes);
                             	break;
@@ -154,9 +160,11 @@ public class CombinedPlanner{
             }
             //IF queue is empty, clear remaining elevators
             if (queue.isEmpty()){
+            	
             	for (Elevator elevator : model.elevators.values()){
+            		//System.out.println("Cleaning up remaining lifts: @ " + );
             		if (elevator.occupants>0){
-            			elevator.dropOff(t);
+            			queue.add(elevator.forceDropOff());
             		}
             	}
             }

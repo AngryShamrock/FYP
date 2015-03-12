@@ -16,6 +16,7 @@ public class Elevator implements Comparable<Elevator> {
     public int occupants;
     private int lookAhead = 100;
     public String location;
+    public int latestTime = 0;
     public Elevator(Model model, String id) {
         this.id = id;
         edges = new ArrayList<Edge>();
@@ -57,24 +58,39 @@ public class Elevator implements Comparable<Elevator> {
 		for (int i = t-1; i>0 ; i--){
 			for (String node : nodes){
 				for (Edge edge : model.getGraphAtTime(i).get(node).edges.values()) {
-					if (edge.end.elevator != null) {
+					if (!node.equals(location)) {
 						edge.blocked = true;
-					} else {
-						edge.blocked = false;
 					}
 					
+					if (edge.end.elevator != null) {
+						
+					} else {
+						if (node.equals(location)){
+							edge.blocked = false;
+						}
+						
+					}
 				}
+				
 			}
 		}
-		//check conditions
-		if (occupants > 6){
-			list.add(dropOff(t));
-		}
 		
-		for (int i=0; i< lookAhead; i++){
-			for (String node : nodes){
-				for (Edge edge : model.getGraphAtTime(i+t).get(node).edges.values()) {
-					if (model.getGraphAtTime(t).get(location).edges.get(node).cost < i) {
+		//check conditions
+		if (occupants >= capacity){
+			Node node = dropOff(t);
+			t = node.t;
+			list.add(node);
+			list.addAll(updateAvailability(t));
+		} else {
+			
+			Edge self = model.getGraphAtTime(t).get(location).edges.get(location);
+			self.signal = true;
+			self.predictedOccupancy = occupants;
+			
+			for (int i=0; i< lookAhead; i++){
+				for (String node : nodes ) {
+					for (Edge edge : model.getGraphAtTime(i+t).get(node).edges.values()) {
+						if (model.getGraphAtTime(t).get(location).edges.get(node).cost <= i || (edge.end.id.equals(location) && edge.start.id.equals(location))) {
 							edge.blocked = false;
 						} else {
 							edge.blocked = true;
@@ -82,6 +98,10 @@ public class Elevator implements Comparable<Elevator> {
 					}
 				}
 			}
+		}
+		latestTime = t;
+		
+		
 
 		//set available
 		
@@ -89,25 +109,48 @@ public class Elevator implements Comparable<Elevator> {
 		return list;
 	}
 	
+	public Node forceDropOff() {
+		Node node = dropOff(latestTime);
+		updateAvailability(latestTime);
+		return node;
+	}
+	
 	public Node dropOff(int t){
 		
-		Node node = model.getGraphAtTime(t).get(location).edges.get(bestDropOff(t)).end;
-		location = node.id;
+		
+		Edge route = model.getGraphAtTime(t).get(location).edges.get(bestDropOff(t));
+		Node destination = route.end;
+		route.signal = true;
+		route.inFlow = occupants;
+		for (int i = 0; i< route.cost; i++){
+			model.getGraphAtTime(t+i).get(location).edges.get(destination.id).predictedOccupancy = occupants;
+		}
+		
+		location = destination.id;
 		System.out.println("Dropped off " + occupants + " people");
 		String lobby = null;
-		for (Edge edge : node.edges.values()){
+		for (Edge edge : destination.edges.values()){
 			if (edge.end.elevator == null){
-				System.out.println("opening! at " + t);
+				System.out.println("opening! at " + (t+route.cost));
 				edge.blocked=false; //open edges to rest of building
+				edge.signal=true;
 				lobby = edge.end.id;
 			}
 		}
-		node =  model.getGraphAtTime(t).get(lobby);
-		node.arrivals = occupants;
+		
+		for (Edge edge : model.getGraphAtTime(t+route.cost).get(lobby).edges.values()){
+			if ( edge.end.elevator != null){
+				edge.blocked=true;
+			}
+		}
+		latestTime = t+route.cost;
+		//put people off elevators
+		destination =  model.getGraphAtTime(t+route.cost).get(lobby);
+		destination.arrivals = occupants;
 		occupants = 0;
 		
 		
-		return node;
+		return destination;
 	}
 	
 	private String bestDropOff(int t){

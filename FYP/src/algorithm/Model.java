@@ -173,13 +173,23 @@ public class Model {
                         Integer length = u.distance + edge.cost;
                         if (!verts.get(edge.end.id).containsKey(length)) {
                             //Have not met vert yet, add it to the map
+                        	
                             Vertex newVert = new Vertex(edge.end.id, length, u.danger+edge.danger, u );
                             
                             verts.get(edge.end.id).put(length, newVert);
                             queue.add( newVert );
                             
                             //System.out.println("Adding: " + edge.end.id + " at " + (u.distance + edge.cost));
+                        } else if (edge.end.id.equals(edge.start.id)) {
+                        	queue.remove(verts.get(edge.end.id).get(length));
+                        	//if it is there, remove it and re add it as a waiting edge
+                        	Vertex newVert = new Vertex(edge.end.id, length, u.danger+edge.danger, u );
+                            
+                            verts.get(edge.end.id).put(length, newVert);
+                            queue.add( newVert );
+                        	
                         }
+                        
                 	}
                     
                 }

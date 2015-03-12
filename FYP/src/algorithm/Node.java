@@ -46,6 +46,16 @@ public class Node{
     	
     }
     
+    public static class NodeComboComparator implements Comparator<Node> {
+    	
+    	@Override
+		public int compare(Node a, Node b) {
+    		Integer aCombo = a.arrivals+a.costToGoal;
+    		Integer bCombo = b.arrivals+b.costToGoal;
+			return aCombo.compareTo(bCombo);
+		}
+    }
+    
     public static class NodeArrivalsComparator implements Comparator<Node> {
 
 		@Override
